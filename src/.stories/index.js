@@ -10,29 +10,62 @@ import range from 'lodash/range';
 import random from 'lodash/random';
 import classNames from 'classnames';
 
-function getItems(count, height) {
+function getItems(count, height, nested = false) {
 	var heights = [65, 110, 140, 65, 90, 65];
-	return range(count).map((value) => {
+	let items = range(count).map((value) => {
 		return {
 			value,
 			height: height || heights[random(0, heights.length - 1)]
 		};
 	});
+  if (nested) {
+    items.forEach(item => {
+      item.items = getItems(random(3, 7), height, false);
+    });
+  }
+	return items;
 }
 
-const Handle = SortableHandle(() => <div className={style.handle}></div>);
+const Handle = SortableHandle(() =>
+  <div className={style.handle} />
+  );
 
-const Item = SortableElement((props) => {
-    return (
-        <div className={props.className} style={{
-            height: props.height
-        }}>
-			{props.shouldUseDragHandle && <Handle/>}
-			<div className={style.wrapper}>
-	            <span>Item</span> {props.value}
-			</div>
+const Item = SortableElement(props => (
+  <div className={props.className} style={{height: props.height}}>
+    {props.shouldUseDragHandle && <Handle/>}
+    <div className={style.wrapper}>
+      <span>Item</span> {props.value}
+    </div>
+  </div>
+));
+
+function sum(array) {
+  return array.reduce((acc, num) => acc + num, 0);
+}
+
+const ItemWithChildren = SortableElement(props => {
+  let totalHeight = props.height + (
+    props.items && !props.renderAsActive
+      ? sum(props.items.map(item => item.height))
+      : 0
+  );
+  return (
+    <div style={{height: totalHeight, width: props.prevWidth}}>
+      <div className={props.className} style={{height: props.height}}>
+        {props.shouldUseDragHandle && <Handle/>}
+        <div className={style.wrapper}>
+          <span>Item</span> {props.value}
         </div>
-    )
+      </div>
+      {!props.renderAsActive && props.items &&
+        <div style={{paddingLeft: 25}}>
+          <SortableList
+            itemClass={props.className}
+            items={props.items}
+            />
+        </div>}
+    </div>
+  )
 });
 
 class ListWrapper extends Component {
@@ -105,7 +138,7 @@ class VirtualList extends Component {
 		sortingIndex: PropTypes.number
 	}
 	render() {
-		let {className, items, height, width, itemHeight, itemClass, sortingIndex} = this.props;
+		let {className, items, height, width, itemHeight, itemClass, sortingIndex, Item} = this.props;
 		return (
 			<VirtualScroll
 				ref="vs"
@@ -203,16 +236,23 @@ const SortableInfiniteList = SortableContainer(({className, items, itemClass, so
 	)
 });
 
-const SortableList = SortableContainer(({className, items, itemClass, sortingIndex, shouldUseDragHandle, sortableHandlers}) => {
+const SortableList = SortableContainer(({
+  className,
+  items, itemClass,
+  sortingIndex,
+  shouldUseDragHandle, sortableHandlers,
+  itemComponent: ItemComponent = Item,
+}) => {
 	return (
 		<div className={className} {...sortableHandlers}>
-			{items.map(({value, height}, index) =>
-				<Item
+			{items.map(({value, height, items}, index) =>
+				<ItemComponent
 					key={`item-${value}`}
 					className={itemClass}
 					sortingIndex={sortingIndex}
 					index={index}
 					value={value}
+					items={items}
 					height={height}
 					shouldUseDragHandle={shouldUseDragHandle}
 				/>
@@ -302,6 +342,19 @@ storiesOf('Advanced', module)
 .add('Window as scroll container', () => {
 	return (
 		<ListWrapper component={SortableList} items={getItems(50, 59)} className="" useWindowAsScrollContainer={true} helperClass={style.stylizedHelper} />
+	);
+})
+.add('Nested sortable lists', () => {
+	return (
+		<div className={style.root}>
+      <ListWrapper
+        component={SortableList}
+        itemComponent={ItemWithChildren}
+        items={getItems(50, 59, true)}
+        helperClass={style.stylizedHelper}
+        renderElementOnSort
+        />
+		</div>
 	);
 })
 

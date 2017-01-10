@@ -60,7 +60,10 @@ export default function sortableElement (WrappedComponent, config = {withRef: fa
 
             node.sortableInfo = {index, collection};
 
-            this.ref = {node};
+            this.ref = {
+              node,
+              element: <WrappedComponent {...this.props} />
+            };
             this.context.manager.add(collection, this.ref);
         }
 

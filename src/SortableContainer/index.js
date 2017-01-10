@@ -63,6 +63,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
 			pressDelay: PropTypes.number,
 			useDragHandle: PropTypes.bool,
 			useWindowAsScrollContainer: PropTypes.bool,
+			renderElementOnSort: PropTypes.bool,
 			hideSortableGhost: PropTypes.bool,
 			lockToContainerEdges: PropTypes.bool,
 			lockOffset: PropTypes.oneOfType([
@@ -172,18 +173,14 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
 			const active = this.manager.getActive();
 
 			if (active) {
-				const {axis, getHelperDimensions, helperClass, hideSortableGhost, onSortStart, useWindowAsScrollContainer} = this.props;
-				let {node, collection} = active;
+				const {axis, getHelperDimensions, helperClass, hideSortableGhost, onSortStart, useWindowAsScrollContainer, renderElementOnSort} = this.props;
+				let {node, element, collection} = active;
 				const {index} = node.sortableInfo;
 				const margin = getElementMargin(node);
 
 				const containerBoundingRect = this.container.getBoundingClientRect();
-				const dimensions = getHelperDimensions({index, node, collection});
 
-				this.node = node;
 				this.margin = margin;
-				this.width = dimensions.width;
-				this.height = dimensions.height;
 				this.marginOffset = {
 					x: this.margin.left + this.margin.right,
 					y: Math.max(this.margin.top, this.margin.bottom)
@@ -204,16 +201,35 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
 					left: this.scrollContainer.scrollLeft
 				};
 
-				this.helper = this.document.body.appendChild(node.cloneNode(true));
+				this.helper = renderElementOnSort
+					? getHelperAsRenderedElement({node, element})
+					: getHelperAsClone({node, element});
+				this.document.body.appendChild(this.helper);
+
+				const dimensions = getHelperDimensions({
+					index,
+					node: renderElementOnSort ? this.helper : node,
+					collection
+				});
+
+				this.width = dimensions.width;
+				this.height = dimensions.height;
+
 				this.helper.style.position = 'fixed';
 				this.helper.style.top = `${this.boundingClientRect.top - margin.top}px`;
 				this.helper.style.left = `${this.boundingClientRect.left - margin.left}px`;
-				this.helper.style.width = `${this.width}px`;
-				this.helper.style.height = `${this.height}px`;
+
+				if (!renderElementOnSort) {
+					this.helper.style.width = `${this.width}px`;
+					this.helper.style.height = `${this.height}px`;
+				}
+
 				this.helper.style.boxSizing = 'border-box';
 
 				if (hideSortableGhost) {
 					this.sortableGhost = node;
+					this.prevHeight = node.style.height;
+					node.style.height = `${this.height}px`;
 					node.style.visibility = 'hidden';
 				}
 
@@ -270,6 +286,7 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
 			this.helper.parentNode.removeChild(this.helper);
 
 			if (hideSortableGhost && this.sortableGhost) {
+				this.sortableGhost.style.height = this.prevHeight;
 				this.sortableGhost.style.visibility = '';
 			}
 
@@ -655,4 +672,23 @@ export default function sortableContainer(WrappedComponent, config = {withRef: f
 			);
 		}
 	};
+}
+
+function getHelperAsClone({node}) {
+	return node.cloneNode(true);
+}
+
+function getHelperAsRenderedElement({node, element}) {
+	let helper = document.createElement('div');
+
+	ReactDOM.render(
+		React.cloneElement(element, {
+			renderAsActive: true,
+			prevHeight: node.offsetHeight,
+			prevWidth: node.offsetWidth
+		}),
+		helper
+	);
+
+	return helper;
 }
