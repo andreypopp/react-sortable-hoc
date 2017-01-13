@@ -18,9 +18,9 @@ export function omit (obj, ...keysToOmit) {
 }
 
 export const events = {
-	start: ['touchstart', 'mousedown'],
-	move: ['touchmove', 'mousemove'],
-	end: ['touchend', 'touchcancel', 'mouseup']
+  start: ['touchstart', 'mousedown'],
+  move: ['touchmove', 'mousemove'],
+  end: ['touchend', 'touchcancel', 'mouseup']
 };
 
 export const vendorPrefix = (function () {
@@ -44,11 +44,14 @@ export const vendorPrefix = (function () {
     }
 })();
 
-export function closest(el, fn) {
-    while (el) {
-        if (fn(el)) return el;
-        el = el.parentNode;
+export function closest(el: HTMLElement, fn: HTMLElement => boolean): ?HTMLElement {
+  while (el) {
+    if (fn(el)) {
+      return el;
     }
+    el = el.parentNode;
+  }
+  return null;
 }
 
 export function limit(min, max, value) {

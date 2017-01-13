@@ -2,6 +2,7 @@ import find from 'lodash/find';
 import sortBy from 'lodash/sortBy';
 
 export default class Manager {
+
 	refs = {};
 
 	add(collection, ref) {
@@ -21,6 +22,10 @@ export default class Manager {
 	getActive() {
 		return find(this.refs[this.active.collection], ({node}) => node.sortableInfo.index == this.active.index);
 	}
+
+  setActive(info) {
+    this.active = info;
+  }
 
 	getIndex(collection, ref) {
 		return this.refs[collection].indexOf(ref);

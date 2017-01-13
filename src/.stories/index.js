@@ -59,7 +59,8 @@ const ItemWithChildren = SortableElement(props => {
       </div>
       {!props.renderAsActive && props.items &&
         <div style={{paddingLeft: 25}}>
-          <SortableList
+          <SortableListBase
+            listIndex={props.itemIndex}
             itemClass={props.className}
             items={props.items}
             />
@@ -236,12 +237,13 @@ const SortableInfiniteList = SortableContainer(({className, items, itemClass, so
 	)
 });
 
-const SortableList = SortableContainer(({
+const SortableListBase = ({
   className,
   items, itemClass,
   sortingIndex,
   shouldUseDragHandle, sortableHandlers,
   itemComponent: ItemComponent = Item,
+  listIndex,
 }) => {
 	return (
 		<div className={className} {...sortableHandlers}>
@@ -250,7 +252,8 @@ const SortableList = SortableContainer(({
 					key={`item-${value}`}
 					className={itemClass}
 					sortingIndex={sortingIndex}
-					index={index}
+					index={listIndex == null ? index * 100 : listIndex + index + 1}
+					itemIndex={listIndex == null ? index * 100 : listIndex + index + 1}
 					value={value}
 					items={items}
 					height={height}
@@ -259,7 +262,9 @@ const SortableList = SortableContainer(({
 			)}
 		</div>
 	);
-});
+};
+
+const SortableList = SortableContainer(SortableListBase);
 
 const ShrinkingSortableList = SortableContainer(({className, isSorting, items, itemClass, sortingIndex, shouldUseDragHandle, sortableHandlers}) => {
 	return (
